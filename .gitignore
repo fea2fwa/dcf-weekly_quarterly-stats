@@ -1,0 +1,10 @@
+.env
+**/.env
+*.xlsx
+**/*.xlsx
+/env
+*.html
+*.txt
+**/*.txt
+*.csv
+**/*.csv
