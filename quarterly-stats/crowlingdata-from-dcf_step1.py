@@ -92,7 +92,7 @@ def fetch_data_from_url(url):
 
 def main():
     # 取得ファイル名を指定
-    excel_file_name = "./excel-data/Q1FY26.xlsx"
+    excel_file_name = "./excel-data/Q4FY26.xlsx"
 
     # エクセルファイルを読み込む
     df = pd.read_excel(excel_file_name)

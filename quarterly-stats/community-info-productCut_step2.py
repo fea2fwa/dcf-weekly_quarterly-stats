@@ -1,6 +1,6 @@
 import os
 
-def extract_community_qa(file_path):
+def extract_community_qa(file_path, product_name):
     # Read text from file
     with open(file_path, 'r', encoding='utf-8') as f:
         text = f.read()
@@ -14,24 +14,26 @@ def extract_community_qa(file_path):
     # Process each block
     for block in blocks:
         if f'製品カテゴリ: {product_name}' in block:
+            title_text, question_text, answer_text = None, None, None
+            
             title_start = block.find('タイトル:')
             if title_start != -1:
                 title_end = block.find('本文: [質問]', title_start)
-                title_text = block[title_start + len('タイトル:'):title_end]
+                if title_end != -1:
+                    title_text = block[title_start + len('タイトル:'):title_end]
 
             # Extract question text
             question_start = block.find('本文: [質問]')
             if question_start != -1:
-                # question_end = block.find('[提案された回答]', question_start)
-                question_end = block.find('[提案された回答]')
-                question_text = block[question_start + len('本文: [質問]'):question_end]
+                question_end = block.find('[提案された回答]', question_start)
+                if question_end != -1:
+                    question_text = block[question_start + len('本文: [質問]'):question_end]
 
-            # Extract answer text
-            answer_start = block.find('[提案された回答]', question_end)
-            if answer_start != -1:
-                # answer_end = block.find('製品カテゴリ:', answer_start)
-                answer_end = block.find('製品カテゴリ:')
-                answer_text = block[answer_start + len('[提案された回答]'):answer_end]
+                    # Extract answer text (now nested and safe)
+                    answer_start = question_end
+                    answer_end = block.find('製品カテゴリ:', answer_start)
+                    if answer_end != -1:
+                        answer_text = block[answer_start + len('[提案された回答]'):answer_end]
 
             # Append extracted data to the list
             if question_text and answer_text:
@@ -47,9 +49,9 @@ def delete_meaningless_text(text):
 
 # Example usage (assuming the file is named 'data.txt' in the same directory)
 # file_path = os.path.join(os.getcwd(), 'dcf-content_20240219_1239.txt')
-file_path = os.path.join(os.getcwd(), './text-data/dcf-content_20250507_1234.txt')
-product_name = 'PPDM'
-qa_data = extract_community_qa(file_path)
+file_path = os.path.join(os.getcwd(), './text-data/dcf-content_20260209_1700.txt')
+product_name = 'VxRail'
+qa_data = extract_community_qa(file_path, product_name)
 
 with open(f'./text-data/community_contents_{product_name}.txt', 'w', encoding='utf-8') as wf:
     for thread in qa_data:

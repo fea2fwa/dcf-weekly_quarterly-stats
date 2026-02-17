@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import json
 import pandas as pd
 from datetime import datetime, timedelta
+import time
 
 
 load_dotenv()  # .envファイルから環境変数を読み込む
@@ -13,7 +14,7 @@ GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 def convert_entities_content(text):
     # 不要な単語をリスト
@@ -58,8 +59,31 @@ def fetch_data_from_url(url):
 
 
     # bs4とdatetimeで投稿時間（日本時間はtimedeltaを利用）を取得
-    date_text = soup.find('p', class_='m-r-1 dell-conversation-ballon__header-date text text--normal css-1ry1tx8 css-jp8xm2').get_text(strip=True)
-    original_time = datetime.strptime(date_text, "%Y年%m月%d日 %H:%M")
+    # date_text = soup.find('p', class_='m-r-1 dell-conversation-ballon__header-date text text--normal css-1ry1tx8 css-jp8xm2').get_text(strip=True)
+    # original_time = datetime.strptime(date_text, "%Y年%m月%d日 %H:%M")
+    # new_time = original_time + timedelta(hours=9)
+    # post_time = new_time.strftime('%Y/%m/%d') #このブロックはWebサイトの仕様変更により動作しなくなったために以下に変更
+    meta_tag = soup.find('meta', property='article:published_time')
+
+    if meta_tag:
+        # content属性の値 (2025-11-04T00:17:42.590Z) を取得
+        raw_date = meta_tag.get('content')
+        
+        # ISO形式の文字列をdatetimeオブジェクトに変換
+        # ※末尾のZはUTC（協定世界時）を意味します
+        dt = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
+        
+        # 指定の形式にフォーマット
+        # %-d は0埋めなしの日にち（Windows環境では %#d）
+        date_text = dt.strftime('%Y年%m月%d日%H:%M').replace(' 0', ' ')
+        
+        # 「04日」を「4日」にするための調整（簡易的な置換例）
+        date_text = dt.strftime('%Y年%m月').replace(' 0', '') + str(dt.day) + "日" + dt.strftime(' %H:%M')
+
+        original_time = datetime.strptime(date_text, "%Y年%m月%d日 %H:%M")
+    else:
+        print("該当するタグが見つかりませんでした。")
+
     new_time = original_time + timedelta(hours=9)
     post_time = new_time.strftime('%Y/%m/%d')
 
@@ -121,7 +145,7 @@ def fetch_data_from_url(url):
 
 def main():
     # 取得ファイル名と取得するプロダクト情報を決定
-    excel_file_name = "./excel-data/Q1FY26.xlsx"
+    excel_file_name = "./excel-data/Q4FY26.xlsx"
     target_product = "VxRail"
 
     ### タイトルとそのタイトルにURLを埋め込んだDataFrameを作成するセクション ###
@@ -163,6 +187,8 @@ def main():
             print(response.text)
             summary_list.append(delete_newline_charactor(response.text))
             post_time_list.append(post_time)
+            print("APIの利用上限にかからないように5秒待機します。")
+            time.sleep(5)
         except Exception as e:
             print(f"URLからのデータ取得かThread内容の取得に失敗しました：{e}")
             summary_list.append("（情報取得に失敗しました。当該コンテンツは削除されている、もしくはURLが変更されている可能性があります。）")
